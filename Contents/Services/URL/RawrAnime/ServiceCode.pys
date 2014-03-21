@@ -1,0 +1,134 @@
+######################################################################################
+
+BASE_URL = 'http://rawranime.tv'
+RE_SESSIONID = Regex("session_id'].*= '.*(?=';)")
+RE_ARKVID = Regex('(?<=src=")http:.*(?=")')
+RE_MP4UPLOAD = Regex("(?<=file: ')http:.*(?=')")
+RE_YOURUPLOAD = Regex('(?<=file: ").*(?=")')
+RE_UPLOADC = Regex("(?<='file',').*(?=')")
+RE_VIDEONEST = Regex("(?<='file': ').*(?=')")
+RE_VIDBOX = Regex("(?<=url: ')http:\/\/serv.*..mp4(?=')")
+RE_DAILYMOTION = Regex('(?<=stream_h264_url":").*(?=","stream_h264_ld_url)')
+ICON_COVER = "icon-cover.png"
+
+######################################################################################
+# Loads metadata from ep_url and returns VideoClipObject 
+
+def MetadataObjectForURL(url):
+	
+	page_data = HTML.ElementFromURL(url.rsplit("??")[0])
+	show_data = HTML.ElementFromURL(page_data.xpath("//div[@id='sidebar_functions']/a/@href")[0])
+	ep_title = page_data.xpath("//div[@id='episode_title']/text()")[0].strip()
+	show_thumb = BASE_URL + show_data.xpath("//img[@class='lazy']/@data-original")[0]
+	show_summary = show_data.xpath("//div[@class='anime_info_synopsis']/text()")[0]
+	show_source = show_data.xpath("//div[@class='anime_info_title']/text()")[0]
+	show_genres = show_data.xpath("//div[@class='anime_info_misc']/text()")[5].strip().split("Genre :")[0].split(", ")
+	show_date = int(show_data.xpath("//div[@class='anime_info_misc']/text()")[4].strip().rsplit("/", 1)[1])
+	try:
+		show_rating = float(show_data.xpath("//div[@class='anime_info_misc']/text()")[0].strip().split("Rating: ")[1])
+	except:
+		show_rating = 0.00
+		
+	return MovieObject(
+		title = ep_title,
+		summary = show_source + "\n\n" + show_summary,
+		thumb = show_thumb,
+		rating = show_rating,
+		genres = show_genres,
+		year = show_date,
+		source_title = show_source
+		)
+
+######################################################################################
+# Sets up and sends a request for the video iframe link before passing to PlayVideo
+
+def MediaObjectsForURL(url):
+
+	page_data = HTML.ElementFromURL(url.rsplit("??")[0])
+	resolution = HTML.StringFromElement(page_data.xpath("//div[contains(@class, 'selected')]/div[@class='mirror_traits']")[0])
+	if resolution.find("1080") > 0:
+		resolution = 1080
+	elif resolution.find("720") > 0:
+		resolution = 720
+	else:
+		resolution = 360
+
+	return[
+		MediaObject(
+			optimized_for_streaming = True,
+			container = Container.MP4,
+			audio_channels = 2,
+			video_codec = VideoCodec.H264,
+			audio_codec = AudioCodec.AAC,
+			video_resolution = resolution,
+			parts = [PartObject(key=Callback(PlayVideo, url = url))]
+			)
+		]
+
+######################################################################################
+# Checks the iframe url for a service we know how to handle, if found returns video link
+
+@indirect
+def PlayVideo(url):
+
+	page_data = HTML.ElementFromURL(url.rsplit("??")[0])
+	string_data = HTML.StringFromElement(page_data)
+	session_id = RE_SESSIONID.search(string_data).group().split("= '")[1]
+	auth_key = page_data.xpath("//input[@name='auth_key']/@value")[0]
+	referer = page_data.xpath("//input[@name='referer']/@value")[0]
+	video_id = url.rsplit("??")[1]
+	request_url = "http://rawranime.tv/index.php?s=" + session_id + "&app=anime&module=ajax&section=anime_watch_handler"
+	iframe_data = HTML.ElementFromString(HTTP.Request(request_url, values = {'md5check':auth_key, 'do':'getvid', 'id':video_id}, headers={'referer':referer}))
+	url = iframe_data.xpath("//iframe/@src")[0]
+
+	if url.find("arkvid") >= 0:
+		page_data = HTML.ElementFromURL(url)
+		string_data = HTML.StringFromElement(page_data)
+		url = RE_ARKVID.search(string_data).group().rsplit('"')[0]
+		Log(url)
+		return IndirectResponse(VideoClipObject, key=url)
+	
+	if url.find("mp4upload") >= 0:
+		page_data = HTML.ElementFromURL(url)
+		string_data = HTML.StringFromElement(page_data)
+		url = RE_MP4UPLOAD.search(string_data).group()
+		Log(url)
+		return IndirectResponse(VideoClipObject, key=url)
+		
+	if url.find("yourupload") >= 0:
+		page_data = HTML.ElementFromURL(url)
+		string_data = HTML.StringFromElement(page_data)
+		url = RE_YOURUPLOAD.search(string_data).group()
+		Log(url)
+		return IndirectResponse(VideoClipObject, key=url)
+		
+	if url.find("uploadc") >= 0:
+		page_data = HTML.ElementFromURL(url)
+		string_data = HTML.StringFromElement(page_data)
+		url = RE_UPLOADC.search(string_data).group()
+		Log(url)
+		return IndirectResponse(VideoClipObject, key=url)
+		
+	if url.find("videonest") >= 0:
+		page_data = HTML.ElementFromURL(url)
+		string_data = HTML.StringFromElement(page_data)
+		url = RE_VIDEONEST.search(string_data).group()
+		Log(url)
+		return IndirectResponse(VideoClipObject, key=url)
+	
+	if url.find("vidbox") >= 0:
+		page_data = HTML.ElementFromURL(url)
+		string_data = HTML.StringFromElement(page_data)
+		url = RE_VIDBOX.search(string_data).group()
+		Log(url)
+		return IndirectResponse(VideoClipObject, key=url)
+	
+	if url.find("dailymotion") >= 0:
+		page_data = HTML.ElementFromURL(url)
+		string_data = HTML.StringFromElement(page_data)
+		url = RE_DAILYMOTION.search(string_data).group()
+		url = url.translate(None, '\\')
+		Log(url)
+		return IndirectResponse(VideoClipObject, key=url)
+	
+	return url
