@@ -22,6 +22,7 @@ System Requirements
 	- Tested Working:
 		- Plex Media Centre / Home Theater
 		- Android
+		- Chromecast
 		- Plex/Web
 		- Windows 8
 		- PS3/360
@@ -41,7 +42,7 @@ How To Install
 
 - Unzip and rename folder to "rawrANIME.bundle"
 
-- Copy AnimePlus.bundle into the PMS plugins directory under your user account:
+- Copy rawrANIME.bundle into the PMS plugins directory under your user account:
 	- Windows 7, Vista, or Server 2008: C:\Users[Your Username]\AppData\Local\Plex Media Server\Plug-ins
 	- Windows XP, Server 2003, or Home Server: C:\Documents and Settings[Your Username]\Local Settings\Application Data\Plex Media Server\Plug-ins
 	- Mac/Linux: ~/Library/Application Support/Plex Media Server/Plug-ins
@@ -57,7 +58,7 @@ Known Issues
 Changelog
 =========
 
-**1.00** - 10/01/14 - Initial release.
+**0.01** - 21/03/14 - Initial release.
 
 Donate
 ======
