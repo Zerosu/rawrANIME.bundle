@@ -3,7 +3,7 @@
 BASE_URL = 'http://rawranime.tv'
 RE_SESSIONID = Regex("session_id'].*= '.*(?=';)")
 RE_ARKVID = Regex('(?<=src=")http:.*(?=")')
-RE_MP4UPLOAD = Regex("(?<=file: ')http:.*(?=')")
+RE_MP4UPLOAD = Regex("(?<='file': ')http:.*(?=')")
 RE_YOURUPLOAD = Regex('(?<=file: ").*(?=")')
 RE_UPLOADC = Regex("(?<='file',').*(?=')")
 RE_VIDEONEST = Regex("(?<='file': ').*(?=')")
